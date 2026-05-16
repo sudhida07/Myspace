@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Command Center — Sudheer Bhat</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  @page { size: 1440px 1800px; margin: 0; }
+  html, body { overflow: visible !important; height: auto !important; }
+  body { background: var(--bg); }
+  #root { height: auto !important; }
+
+  .print-page {
+    width: 1440px;
+    min-height: 1760px;
+    padding: 32px 40px;
+    page-break-after: always;
+    break-after: page;
+    background: var(--bg);
+    box-sizing: border-box;
+  }
+  .print-page:last-child { page-break-after: auto; break-after: auto; }
+  .print-page-header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 14px; margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .print-page-header h1 {
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .print-page-header .meta {
+    font-size: 11px; color: var(--text-tertiary);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    font-family: var(--font-mono);
+  }
+  .page-in { animation: none !important; }
+  * { animation: none !important; transition: none !important; }
+  .pulse { animation: none !important; }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const _origRO = window.ResizeObserver;
+if (_origRO) {
+  window.ResizeObserver = class extends _origRO {
+    constructor(cb) {
+      super((entries, obs) => {
+        window.requestAnimationFrame(() => { try { cb(entries, obs); } catch (e) {} });
+      });
+    }
+  };
+}
+</script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="core.jsx"></script>
+<script type="text/babel" src="trading.jsx"></script>
+<script type="text/babel" src="habits.jsx"></script>
+<script type="text/babel" src="emi.jsx"></script>
+<script type="text/babel" src="organizer.jsx"></script>
+<script type="text/babel" src="profile.jsx"></script>
+<script type="text/babel" src="gallery.jsx"></script>
+
+<script type="text/babel">
+const PRINT_MODULES = [
+  { id: "trading", title: "Trading Portfolio", comp: () => window.TradingPortfolio },
+  { id: "habits", title: "Habit Tracker", comp: () => window.HabitTracker },
+  { id: "emi", title: "EMI Command Center", comp: () => window.EMICommandCenter },
+  { id: "organizer", title: "Organizer", comp: () => window.Organizer },
+  { id: "profile", title: "Job Profile", comp: () => window.JobProfile },
+  { id: "gallery", title: "Photo Gallery", comp: () => window.PhotoGallery },
+];
+
+function PrintApp() {
+  return (
+    <div>
+      {PRINT_MODULES.map((m, i) => {
+        const C = m.comp();
+        return (
+          <div key={m.id} className="print-page">
+            <div className="print-page-header">
+              <h1>{m.title}</h1>
+              <span className="meta">Command Center · Sudheer Bhat · {String(i + 1).padStart(2, "0")} / {String(PRINT_MODULES.length).padStart(2, "0")}</span>
+            </div>
+            {C ? <C /> : <div style={{ color: "var(--text-tertiary)" }}>Module unavailable</div>}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<PrintApp />);
+
+// Auto-print after fonts + JSX + render settle
+(async () => {
+  try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+  await new Promise(r => setTimeout(r, 1500));
+  window.print();
+})();
+</script>
+</body>
+</html>
