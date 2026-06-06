@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Royal Enfield Interceptor 650 — Cost Tracker</title>
+<style>
+  :root {
+    --bg: #0f1216;
+    --panel: #181d24;
+    --panel-2: #1f2630;
+    --line: #2a323d;
+    --text: #e6edf3;
+    --muted: #93a1b1;
+    --accent: #e23636;      /* RE red */
+    --accent-2: #f2a900;    /* amber */
+    --good: #3fb950;
+    --input: #11161c;
+    --shadow: 0 6px 20px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(1200px 600px at 80% -10%, #1b2230 0%, var(--bg) 55%);
+    color: var(--text);
+    line-height: 1.4;
+  }
+  header {
+    padding: 28px 24px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .badge {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--accent), #8c1d1d);
+    display: grid; place-items: center; font-weight: 800; font-size: 18px;
+    box-shadow: var(--shadow); letter-spacing: .5px;
+  }
+  h1 { font-size: 20px; margin: 0; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+  button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    padding: 9px 14px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 600;
+    transition: .15s;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); }
+  button.primary:hover { filter: brightness(1.08); }
+
+  main { max-width: 1180px; margin: 0 auto; padding: 22px 18px 60px; }
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px 16px 8px; box-shadow: var(--shadow);
+  }
+  .card h2 {
+    font-size: 14px; margin: 2px 0 12px; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--muted); display: flex; align-items: center; gap: 8px;
+  }
+  .card h2 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  .span-4 { grid-column: span 4; }
+  .span-6 { grid-column: span 6; }
+  .span-8 { grid-column: span 8; }
+  .span-12 { grid-column: span 12; }
+  @media (max-width: 860px) {
+    .span-4, .span-6, .span-8 { grid-column: span 12; }
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 7px 4px; font-size: 14px; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  td.label { color: var(--muted); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  input[type="number"], input[type="text"], select {
+    width: 100%; background: var(--input); color: var(--text);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+    font-size: 14px; text-align: right; font-variant-numeric: tabular-nums;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  select { text-align: left; }
+  .row { display: grid; grid-template-columns: 1.4fr 1fr; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .row label { color: var(--muted); font-size: 13px; }
+  .inwrap { position: relative; }
+  .inwrap .cur { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 13px; pointer-events: none; }
+  .inwrap input { padding-left: 22px; text-align: right; }
+
+  .total-row td { font-weight: 700; font-size: 15px; border-top: 2px solid var(--line); }
+  .accent { color: var(--accent-2); }
+  .pill {
+    display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--muted);
+  }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 4px; }
+  @media (max-width: 720px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: linear-gradient(180deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+  }
+  .kpi .t { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+  .kpi .v { font-size: 22px; font-weight: 800; margin-top: 6px; }
+  .kpi .h { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .kpi.big .v { color: var(--accent-2); }
+
+  .bars { margin-top: 6px; }
+  .bar { display: grid; grid-template-columns: 130px 1fr 96px; align-items: center; gap: 10px; margin: 9px 0; font-size: 13px; }
+  .bar .track { background: var(--input); border-radius: 6px; height: 14px; overflow: hidden; border: 1px solid var(--line); }
+  .bar .fill { height: 100%; border-radius: 6px; }
+  .bar .v { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .legend-name { color: var(--muted); }
+
+  .note { color: var(--muted); font-size: 12px; padding: 6px 2px 12px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px; }
+  .add-btn { width: 100%; margin: 8px 0 12px; }
+  .del { color: var(--muted); cursor: pointer; border: none; background: none; font-size: 16px; padding: 0 4px; }
+  .del:hover { color: var(--accent); }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+  .seg button { border: none; border-radius: 0; background: var(--panel); }
+  .seg button.active { background: var(--accent); color: #fff; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="badge">650</div>
+    <div>
+      <h1>Interceptor 650 — Cost Tracker</h1>
+      <div class="sub">Interactive total-cost-of-ownership planner for the Royal Enfield Interceptor 650</div>
+    </div>
+  </div>
+  <div class="toolbar">
+    <span class="pill" id="savedHint">Auto-saves to this browser</span>
+    <button onclick="resetAll()">Reset defaults</button>
+    <button onclick="exportCSV()">Export CSV</button>
+    <button class="primary" onclick="window.print()">Print / PDF</button>
+  </div>
+</header>
+
+<main>
+  <!-- KPI SUMMARY -->
+  <div class="kpi-grid" style="margin-bottom:18px">
+    <div class="kpi"><div class="t">On-Road Price</div><div class="v" id="kpiOnRoad">—</div><div class="h">Drive it home cost</div></div>
+    <div class="kpi"><div class="t">Monthly EMI</div><div class="v" id="kpiEmi">—</div><div class="h" id="kpiEmiSub">loan tenure</div></div>
+    <div class="kpi"><div class="t">Running Cost / Month</div><div class="v" id="kpiRun">—</div><div class="h" id="kpiRunSub">fuel + upkeep</div></div>
+    <div class="kpi big"><div class="t">Cost / Year (ownership)</div><div class="v" id="kpiYear">—</div><div class="h">EMI + running + insurance</div></div>
+  </div>
+
+  <div class="grid">
+    <!-- PURCHASE / ON-ROAD -->
+    <section class="card span-6">
+      <h2><span class="dot"></span> On-Road Price Breakdown</h2>
+      <table id="onRoadTable">
+        <tr><td class="label">Ex-showroom price</td><td class="num"><div class="inwrap"><span class="cur">₹</span><input type="number" id="exShowroom" /></div></td></tr>
+        <tr><td class="label">RTO / Registration</td><td class="num"><div class="inwrap"><span class="cur">₹</span><input type="number" id="rto" /></div></td></tr>
+        <tr><td class="label">Insurance (1st year)</td><td class="num"><div class="inwrap"><span class="cur">₹</span><input type="number" id="insurance" /></div></td></tr>
+        <tr><td class="label">Accessories / Apparel</td><td class="num"><div class="inwrap"><span class="cur">₹</span><input type="number" id="accessories" /></div></td></tr>
+        <tr><td class="label">Logistics / Handling</td><td class="num"><div class="inwrap"><span class="cur">₹</span><input type="number" id="handling" /></div></td></tr>
+        <tr class="total-row"><td>On-Road Price</td><td class="num accent" id="onRoadTotal">—</td></tr>
+      </table>
+      <div class="note">Defaults are indicative mid-2020s figures for a metro RTO. Edit any cell to match your dealer quote.</div>
+    </section>
+
+    <!-- LOAN / EMI -->
+    <section class="card span-6">
+      <h2><span class="dot"></span> Loan &amp; EMI Calculator</h2>
+      <div class="row"><label>Down payment</label><div class="inwrap"><span class="cur">₹</span><input type="number" id="downPayment" /></div></div>
+      <div class="row"><label>Interest rate (p.a.)</label><div class="inwrap"><span class="cur">%</span><input type="number" id="rate" step="0.1" /></div></div>
+      <div class="row"><label>Tenure (months)</label><input type="number" id="tenure" /></div>
+      <table>
+        <tr><td class="label">Loan amount</td><td class="num" id="loanAmount">—</td></tr>
+        <tr><td class="label">Monthly EMI</td><td class="num accent" id="emi">—</td></tr>
+        <tr><td class="label">Total interest paid</td><td class="num" id="totalInterest">—</td></tr>
+        <tr class="total-row"><td>Total cost of loan</td><td class="num" id="loanTotal">—</td></tr>
+      </table>
+      <div class="note">Set down payment to the full on-road price for a cash purchase (EMI becomes ₹0).</div>
+    </section>
+
+    <!-- RUNNING COSTS -->
+    <section class="card span-6">
+      <h2><span class="dot"></span> Running Costs (Fuel &amp; Usage)</h2>
+      <div class="row"><label>Distance / month (km)</label><input type="number" id="kmPerMonth" /></div>
+      <div class="row"><label>Mileage (km/l)</label><input type="number" id="mileage" step="0.5" /></div>
+      <div class="row"><label>Petrol price (₹/l)</label><div class="inwrap"><span class="cur">₹</span><input type="number" id="petrol" step="0.5" /></div></div>
+      <table>
+        <tr><td class="label">Fuel / month</td><td class="num" id="fuelMonth">—</td></tr>
+        <tr><td class="label">Fuel / year</td><td class="num" id="fuelYear">—</td></tr>
+        <tr><td class="label">Cost per km (fuel)</td><td class="num" id="costPerKm">—</td></tr>
+      </table>
+    </section>
+
+    <!-- MAINTENANCE -->
+    <section class="card span-6">
+      <h2><span class="dot"></span> Maintenance &amp; Recurring (per year)</h2>
+      <div id="maintList"></div>
+      <button class="add-btn" onclick="addMaint()">+ Add maintenance item</button>
+      <table>
+        <tr class="total-row"><td>Maintenance / year</td><td class="num accent" id="maintTotal">—</td></tr>
+      </table>
+    </section>
+
+    <!-- TCO BREAKDOWN CHART -->
+    <section class="card span-8">
+      <h2><span class="dot"></span> Annual Cost Breakdown</h2>
+      <div class="bars" id="bars"></div>
+    </section>
+
+    <!-- LONG TERM -->
+    <section class="card span-4">
+      <h2><span class="dot"></span> Long-Term Projection</h2>
+      <div class="row"><label>Ownership horizon (yrs)</label><input type="number" id="years" /></div>
+      <table>
+        <tr><td class="label">Upfront (down pmt + acc.)</td><td class="num" id="ltUpfront">—</td></tr>
+        <tr><td class="label">EMI over horizon</td><td class="num" id="ltEmi">—</td></tr>
+        <tr><td class="label">Fuel over horizon</td><td class="num" id="ltFuel">—</td></tr>
+        <tr><td class="label">Maint. + insurance</td><td class="num" id="ltMaint">—</td></tr>
+        <tr class="total-row"><td>Total cost of ownership</td><td class="num accent" id="ltTotal">—</td></tr>
+        <tr><td class="label">Effective ₹ / km</td><td class="num" id="ltPerKm">—</td></tr>
+      </table>
+    </section>
+  </div>
+
+  <footer>
+    Built as a planning aid · All figures are user-editable estimates, not quotes · Data stays in your browser (localStorage)
+  </footer>
+</main>
+
+<script>
+"use strict";
+
+// ---- Default model (indicative INR figures) ----
+const DEFAULTS = {
+  exShowroom: 303000,
+  rto: 33000,
+  insurance: 16000,
+  accessories: 18000,
+  handling: 4000,
+  downPayment: 75000,
+  rate: 10.5,
+  tenure: 36,
+  kmPerMonth: 800,
+  mileage: 25,
+  petrol: 105,
+  years: 5,
+  maint: [
+    { name: "Periodic service", amount: 6000 },
+    { name: "Tyres (amortised)", amount: 4000 },
+    { name: "Chain / consumables", amount: 2500 },
+    { name: "Insurance renewal", amount: 9000 }
+  ]
+};
+const KEY = "interceptor650tracker.v1";
+
+let state = load();
+
+function load() {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return structuredClone(DEFAULTS);
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+// ---- Formatting (Indian numbering) ----
+const fmt = n => "₹" + Math.round(n || 0).toLocaleString("en-IN");
+const fmt2 = n => "₹" + (n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+const SIMPLE_FIELDS = ["exShowroom","rto","insurance","accessories","handling",
+  "downPayment","rate","tenure","kmPerMonth","mileage","petrol","years"];
+
+// ---- Wire inputs ----
+function bindInputs() {
+  SIMPLE_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    el.value = state[id];
+    el.addEventListener("input", () => {
+      const v = parseFloat(el.value);
+      state[id] = isNaN(v) ? 0 : v;
+      save(); compute();
+    });
+  });
+}
+
+// ---- Maintenance rows ----
+function renderMaint() {
+  const wrap = document.getElementById("maintList");
+  wrap.innerHTML = "";
+  state.maint.forEach((item, i) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.gridTemplateColumns = "1.4fr 1fr auto";
+    row.innerHTML =
+      '<input type="text" value="' + escapeHtml(item.name) + '" style="text-align:left" data-i="' + i + '" data-k="name">' +
+      '<div class="inwrap"><span class="cur">₹</span><input type="number" value="' + item.amount + '" data-i="' + i + '" data-k="amount"></div>' +
+      '<button class="del" title="Remove" data-del="' + i + '">×</button>';
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll("input").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const i = +inp.dataset.i, k = inp.dataset.k;
+      state.maint[i][k] = k === "amount" ? (parseFloat(inp.value) || 0) : inp.value;
+      save(); compute();
+    });
+  });
+  wrap.querySelectorAll("[data-del]").forEach(b => {
+    b.addEventListener("click", () => {
+      state.maint.splice(+b.dataset.del, 1);
+      save(); renderMaint(); compute();
+    });
+  });
+}
+function addMaint() {
+  state.maint.push({ name: "New item", amount: 0 });
+  save(); renderMaint(); compute();
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+// ---- EMI math ----
+function calcEMI(principal, annualRate, months) {
+  if (principal <= 0 || months <= 0) return 0;
+  const r = annualRate / 12 / 100;
+  if (r === 0) return principal / months;
+  return principal * r * Math.pow(1 + r, months) / (Math.pow(1 + r, months) - 1);
+}
+
+// ---- Core compute ----
+function compute() {
+  const s = state;
+
+  const onRoad = s.exShowroom + s.rto + s.insurance + s.accessories + s.handling;
+  document.getElementById("onRoadTotal").textContent = fmt(onRoad);
+
+  // Loan
+  const loan = Math.max(0, onRoad - s.downPayment);
+  const emi = calcEMI(loan, s.rate, s.tenure);
+  const totalPaid = emi * s.tenure;
+  const interest = Math.max(0, totalPaid - loan);
+  document.getElementById("loanAmount").textContent = fmt(loan);
+  document.getElementById("emi").textContent = fmt(emi) + " /mo";
+  document.getElementById("totalInterest").textContent = fmt(interest);
+  document.getElementById("loanTotal").textContent = fmt(totalPaid);
+
+  // Running
+  const fuelMonth = s.mileage > 0 ? (s.kmPerMonth / s.mileage) * s.petrol : 0;
+  const fuelYear = fuelMonth * 12;
+  const perKm = s.mileage > 0 ? s.petrol / s.mileage : 0;
+  document.getElementById("fuelMonth").textContent = fmt(fuelMonth);
+  document.getElementById("fuelYear").textContent = fmt(fuelYear);
+  document.getElementById("costPerKm").textContent = fmt2(perKm) + " /km";
+
+  // Maintenance
+  const maintYear = s.maint.reduce((a, m) => a + (m.amount || 0), 0);
+  document.getElementById("maintTotal").textContent = fmt(maintYear);
+
+  // Per-year ownership (during loan period EMI counts)
+  const emiYear = emi * 12;
+  const yearTotal = emiYear + fuelYear + maintYear;
+  const runMonth = fuelMonth + maintYear / 12;
+
+  // KPIs
+  document.getElementById("kpiOnRoad").textContent = fmt(onRoad);
+  document.getElementById("kpiEmi").textContent = emi > 0 ? fmt(emi) : "₹0";
+  document.getElementById("kpiEmiSub").textContent = emi > 0 ? (s.tenure + "-month loan") : "cash purchase";
+  document.getElementById("kpiRun").textContent = fmt(runMonth);
+  document.getElementById("kpiYear").textContent = fmt(yearTotal);
+
+  // Bars (annual breakdown)
+  const bars = [
+    { name: "EMI / year", val: emiYear, color: "#e23636" },
+    { name: "Fuel / year", val: fuelYear, color: "#f2a900" },
+    { name: "Maintenance", val: maintYear, color: "#3fb950" }
+  ];
+  const maxv = Math.max(1, ...bars.map(b => b.val));
+  document.getElementById("bars").innerHTML = bars.map(b =>
+    '<div class="bar"><span class="legend-name">' + b.name + '</span>' +
+    '<div class="track"><div class="fill" style="width:' + (b.val / maxv * 100) + '%;background:' + b.color + '"></div></div>' +
+    '<span class="v">' + fmt(b.val) + '</span></div>'
+  ).join("") +
+  '<div class="bar" style="margin-top:14px;border-top:1px solid var(--line);padding-top:12px">' +
+    '<span class="legend-name" style="font-weight:700;color:var(--text)">Total / year</span>' +
+    '<div></div><span class="v" style="color:var(--accent-2);font-weight:700">' + fmt(yearTotal) + '</span></div>';
+
+  // Long-term projection
+  const yrs = Math.max(0, s.years);
+  const upfront = s.downPayment + s.accessories;
+  const ltEmiActual = emi * Math.min(s.tenure, yrs * 12);
+  const ltFuel = fuelYear * yrs;
+  const ltMaint = maintYear * yrs;
+  const ltTotal = upfront + ltEmiActual + ltFuel + ltMaint;
+  const totalKm = s.kmPerMonth * 12 * yrs;
+
+  document.getElementById("ltUpfront").textContent = fmt(upfront);
+  document.getElementById("ltEmi").textContent = fmt(ltEmiActual);
+  document.getElementById("ltFuel").textContent = fmt(ltFuel);
+  document.getElementById("ltMaint").textContent = fmt(ltMaint);
+  document.getElementById("ltTotal").textContent = fmt(ltTotal);
+  document.getElementById("ltPerKm").textContent = totalKm > 0 ? fmt2(ltTotal / totalKm) + " /km" : "—";
+}
+
+// ---- Actions ----
+function resetAll() {
+  if (!confirm("Reset all values to default estimates?")) return;
+  state = structuredClone(DEFAULTS);
+  save();
+  SIMPLE_FIELDS.forEach(id => document.getElementById(id).value = state[id]);
+  renderMaint(); compute();
+}
+
+function exportCSV() {
+  const s = state;
+  const onRoad = s.exShowroom + s.rto + s.insurance + s.accessories + s.handling;
+  const loan = Math.max(0, onRoad - s.downPayment);
+  const emi = calcEMI(loan, s.rate, s.tenure);
+  const fuelMonth = s.mileage > 0 ? (s.kmPerMonth / s.mileage) * s.petrol : 0;
+  const maintYear = s.maint.reduce((a, m) => a + (m.amount || 0), 0);
+  const rows = [
+    ["Royal Enfield Interceptor 650 — Cost Tracker"],
+    ["Generated", new Date().toLocaleString()],
+    [],
+    ["ON-ROAD PRICE", "INR"],
+    ["Ex-showroom", s.exShowroom],
+    ["RTO / Registration", s.rto],
+    ["Insurance (1st yr)", s.insurance],
+    ["Accessories", s.accessories],
+    ["Handling", s.handling],
+    ["On-road total", onRoad],
+    [],
+    ["LOAN", "INR"],
+    ["Down payment", s.downPayment],
+    ["Loan amount", Math.round(loan)],
+    ["Interest rate (%)", s.rate],
+    ["Tenure (months)", s.tenure],
+    ["Monthly EMI", Math.round(emi)],
+    ["Total interest", Math.round(emi * s.tenure - loan)],
+    [],
+    ["RUNNING", "INR"],
+    ["Km / month", s.kmPerMonth],
+    ["Mileage (km/l)", s.mileage],
+    ["Petrol (Rs/l)", s.petrol],
+    ["Fuel / month", Math.round(fuelMonth)],
+    ["Fuel / year", Math.round(fuelMonth * 12)],
+    [],
+    ["MAINTENANCE / YEAR", "INR"],
+    ...s.maint.map(m => [m.name, m.amount]),
+    ["Maintenance total", maintYear],
+  ];
+  const csv = rows.map(r => r.map(c => {
+    const v = c == null ? "" : String(c);
+    return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "interceptor-650-cost-tracker.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ---- Init ----
+bindInputs();
+renderMaint();
+compute();
+</script>
+</body>
+</html>
