@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EMI Command Center</title>
+<style>
+  :root{
+    --bg:#0b1020; --panel:#141b30; --panel2:#1b2540; --line:#283557;
+    --txt:#e7ecf5; --muted:#9fb0d0; --accent:#5b8cff; --accent2:#37e0a6;
+    --warn:#ffb454; --danger:#ff6b6b; --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 600px at 20% -10%,#16213f 0%,var(--bg) 55%);
+    color:var(--txt);min-height:100vh;padding:24px;
+  }
+  h1{font-size:22px;margin:0 0 2px;letter-spacing:.3px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .cols{grid-template-columns:380px 1fr}
+  @media(max-width:900px){.cols{grid-template-columns:1fr}}
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h2{font-size:14px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 14px}
+  label{display:block;font-size:12px;color:var(--muted);margin:12px 0 6px}
+  input,select{width:100%;padding:10px 12px;background:#0e1426;border:1px solid var(--line);border-radius:10px;color:var(--txt);font-size:14px}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:10px}
+  .row>*{flex:1}
+  button{cursor:pointer;border:none;border-radius:10px;font-size:14px;font-weight:600;padding:11px 14px;transition:.15s}
+  .btn{background:var(--accent);color:#fff;width:100%;margin-top:16px}
+  .btn:hover{filter:brightness(1.1)}
+  .btn.ghost{background:transparent;border:1px solid var(--line);color:var(--muted)}
+  .kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .kpi .val{font-size:26px;font-weight:700;margin-top:6px}
+  .kpi .val.accent{color:var(--accent2)}
+  .kpi .val.warn{color:var(--warn)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.5px;position:sticky;top:0;background:var(--panel2)}
+  td:first-child,th:first-child{text-align:left}
+  .scroll{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+  .bar{height:10px;background:#0e1426;border-radius:999px;overflow:hidden;margin-top:10px}
+  .bar > span{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .loanlist{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .loan{display:flex;justify-content:space-between;align-items:center;background:#0e1426;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px}
+  .loan small{color:var(--muted);display:block;margin-top:2px}
+  .loan .x{color:var(--danger);cursor:pointer;font-weight:700;padding:0 6px}
+  .donut{display:flex;align-items:center;gap:16px}
+  .legend{font-size:13px}
+  .legend div{display:flex;align-items:center;gap:8px;margin:4px 0}
+  .dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:24px}
+</style>
+</head>
+<body>
+  <h1>EMI Command Center</h1>
+  <div class="sub">Self-contained loan &amp; EMI dashboard — works fully offline, no external dependencies.</div>
+
+  <div class="grid kpis" id="kpis" style="margin-bottom:16px">
+    <div class="card kpi"><div class="label">Monthly EMI (this loan)</div><div class="val accent" id="kpiEmi">₹0</div></div>
+    <div class="card kpi"><div class="label">Total Interest</div><div class="val warn" id="kpiInterest">₹0</div></div>
+    <div class="card kpi"><div class="label">Total Payment</div><div class="val" id="kpiTotal">₹0</div></div>
+    <div class="card kpi"><div class="label">Portfolio Monthly Outgo</div><div class="val accent" id="kpiPortfolio">₹0</div></div>
+  </div>
+
+  <div class="grid cols">
+    <div class="card">
+      <h2>Loan Inputs</h2>
+      <label>Loan name</label>
+      <input id="name" placeholder="e.g. Home Loan" value="Home Loan" />
+      <label>Principal amount (₹)</label>
+      <input id="principal" type="number" value="5000000" min="0" step="1000" />
+      <label>Annual interest rate (%)</label>
+      <input id="rate" type="number" value="8.5" min="0" step="0.05" />
+      <div class="row">
+        <div>
+          <label>Tenure</label>
+          <input id="tenure" type="number" value="20" min="1" step="1" />
+        </div>
+        <div>
+          <label>Unit</label>
+          <select id="unit"><option value="years">Years</option><option value="months">Months</option></select>
+        </div>
+      </div>
+      <button class="btn" id="calcBtn">Calculate</button>
+      <button class="btn ghost" id="addBtn">+ Add to portfolio</button>
+
+      <h2 style="margin-top:24px">Portfolio</h2>
+      <div class="loanlist" id="loanList"><div class="empty">No loans added yet.</div></div>
+    </div>
+
+    <div class="grid" style="gap:16px;align-content:start">
+      <div class="card">
+        <h2>Principal vs Interest</h2>
+        <div class="donut">
+          <canvas id="donut" width="150" height="150"></canvas>
+          <div class="legend">
+            <div><span class="dot" style="background:#5b8cff"></span> Principal: <strong id="legPrincipal">₹0</strong></div>
+            <div><span class="dot" style="background:#ffb454"></span> Interest: <strong id="legInterest">₹0</strong></div>
+            <div style="margin-top:8px;color:var(--muted)">Interest is <strong id="legPct">0%</strong> of total payment</div>
+          </div>
+        </div>
+        <div class="bar"><span id="barFill" style="width:0%"></span></div>
+      </div>
+
+      <div class="card">
+        <h2>Amortization Schedule</h2>
+        <div class="scroll">
+          <table id="schedule">
+            <thead><tr><th>#</th><th>EMI</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  var $ = function(id){ return document.getElementById(id); };
+  var fmt = function(n){
+    if(!isFinite(n)) n = 0;
+    return "₹" + Math.round(n).toLocaleString("en-IN");
+  };
+
+  // EMI = P*r*(1+r)^n / ((1+r)^n - 1)  ; r = monthly rate, n = months
+  function computeEMI(P, annualRate, n){
+    var r = annualRate/12/100;
+    if(r === 0) return n > 0 ? P/n : 0;
+    var pow = Math.pow(1+r, n);
+    return P*r*pow/(pow-1);
+  }
+
+  function schedule(P, annualRate, n){
+    var r = annualRate/12/100, emi = computeEMI(P, annualRate, n), bal = P, rows = [];
+    for(var i=1;i<=n;i++){
+      var interest = bal*r;
+      var principal = emi - interest;
+      bal = Math.max(0, bal - principal);
+      rows.push({i:i, emi:emi, principal:principal, interest:interest, balance:bal});
+    }
+    return {emi:emi, rows:rows};
+  }
+
+  function months(){
+    var t = parseFloat($("tenure").value)||0;
+    return $("unit").value === "years" ? Math.round(t*12) : Math.round(t);
+  }
+
+  function drawDonut(principal, interest){
+    var c = $("donut"), ctx = c.getContext("2d");
+    var total = principal + interest, cx=75, cy=75, R=60, r=38;
+    ctx.clearRect(0,0,150,150);
+    var segs = total>0 ? [["#5b8cff",principal],["#ffb454",interest]] : [["#283557",1]];
+    var start = -Math.PI/2, sum = total>0?total:1;
+    segs.forEach(function(s){
+      var end = start + (s[1]/sum)*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,R,start,end); ctx.closePath();
+      ctx.fillStyle = s[0]; ctx.fill();
+      start = end;
+    });
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.fillStyle = "#141b30"; ctx.fill();
+  }
+
+  function render(){
+    var P = parseFloat($("principal").value)||0;
+    var rate = parseFloat($("rate").value)||0;
+    var n = months();
+    var s = schedule(P, rate, n);
+    var totalPay = s.emi*n;
+    var totalInterest = totalPay - P;
+
+    $("kpiEmi").textContent = fmt(s.emi);
+    $("kpiInterest").textContent = fmt(totalInterest);
+    $("kpiTotal").textContent = fmt(totalPay);
+    $("legPrincipal").textContent = fmt(P);
+    $("legInterest").textContent = fmt(totalInterest);
+    var pct = totalPay>0 ? (totalInterest/totalPay*100) : 0;
+    $("legPct").textContent = pct.toFixed(1)+"%";
+    $("barFill").style.width = pct+"%";
+    drawDonut(P, totalInterest);
+
+    var tb = $("schedule").querySelector("tbody");
+    tb.innerHTML = "";
+    s.rows.forEach(function(row){
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td>"+row.i+"</td><td>"+fmt(row.emi)+"</td><td>"+fmt(row.principal)+
+        "</td><td>"+fmt(row.interest)+"</td><td>"+fmt(row.balance)+"</td>";
+      tb.appendChild(tr);
+    });
+  }
+
+  // ---- Portfolio (localStorage) ----
+  var LS_KEY = "emi-command-center-loans";
+  function loadLoans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY))||[]; }catch(e){ return []; } }
+  function saveLoans(l){ try{ localStorage.setItem(LS_KEY, JSON.stringify(l)); }catch(e){} }
+
+  function renderPortfolio(){
+    var loans = loadLoans(), list = $("loanList"), outgo = 0;
+    list.innerHTML = "";
+    if(!loans.length){ list.innerHTML = '<div class="empty">No loans added yet.</div>'; }
+    loans.forEach(function(l, idx){
+      var emi = computeEMI(l.principal, l.rate, l.n);
+      outgo += emi;
+      var div = document.createElement("div");
+      div.className = "loan";
+      div.innerHTML = "<div><strong>"+(l.name||"Loan")+"</strong><small>"+fmt(l.principal)+
+        " @ "+l.rate+"% · "+l.n+" mo</small></div><div style='text-align:right'>"+fmt(emi)+
+        "<span class='x' data-i='"+idx+"'>&times;</span></div>";
+      list.appendChild(div);
+    });
+    $("kpiPortfolio").textContent = fmt(outgo);
+    list.querySelectorAll(".x").forEach(function(x){
+      x.onclick = function(){
+        var loans = loadLoans();
+        loans.splice(parseInt(this.getAttribute("data-i"),10),1);
+        saveLoans(loans); renderPortfolio();
+      };
+    });
+  }
+
+  $("calcBtn").onclick = render;
+  $("addBtn").onclick = function(){
+    var loans = loadLoans();
+    loans.push({
+      name: $("name").value || "Loan",
+      principal: parseFloat($("principal").value)||0,
+      rate: parseFloat($("rate").value)||0,
+      n: months()
+    });
+    saveLoans(loans); renderPortfolio();
+  };
+  ["principal","rate","tenure","unit"].forEach(function(id){
+    $(id).addEventListener("input", render);
+  });
+
+  render();
+  renderPortfolio();
+})();
+</script>
+</body>
+</html>
