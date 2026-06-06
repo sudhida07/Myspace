@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Royal Enfield Interceptor 650 — Cost Tracker</title>
+<style>
+  :root{
+    --bg:#0f1115; --panel:#171a21; --panel2:#1e222b; --line:#2a2f3a;
+    --txt:#e7ebf0; --muted:#9aa4b2; --accent:#d9531e; --accent2:#f0a35e;
+    --green:#39c07a; --red:#e25555; --chip:#232834;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+    background:var(--bg); color:var(--txt); line-height:1.45;
+  }
+  header{
+    background:linear-gradient(135deg,#d9531e,#8c2d0c);
+    padding:22px 24px; box-shadow:0 4px 18px rgba(0,0,0,.4);
+  }
+  header h1{margin:0; font-size:1.5rem; letter-spacing:.3px}
+  header p{margin:4px 0 0; color:#ffe6d6; font-size:.9rem}
+  .wrap{max-width:1100px; margin:0 auto; padding:20px 16px 60px}
+
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:16px 0}
+  .toolbar .spacer{flex:1}
+  button{
+    background:var(--accent); color:#fff; border:none; border-radius:8px;
+    padding:9px 14px; font-size:.85rem; cursor:pointer; font-weight:600;
+    transition:.15s; white-space:nowrap;
+  }
+  button:hover{filter:brightness(1.08)}
+  button.ghost{background:var(--chip); color:var(--txt); border:1px solid var(--line)}
+  button.danger{background:transparent; color:var(--red); border:1px solid var(--red); padding:6px 10px; font-size:.8rem}
+  button.sm{padding:6px 10px; font-size:.8rem}
+
+  .cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin:18px 0}
+  .card{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px}
+  .card .label{color:var(--muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.5px}
+  .card .value{font-size:1.5rem; font-weight:700; margin-top:6px}
+  .card .sub{color:var(--muted); font-size:.78rem; margin-top:2px}
+  .card.accent .value{color:var(--accent2)}
+  .card.green .value{color:var(--green)}
+
+  section{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; margin:18px 0}
+  section h2{margin:0 0 4px; font-size:1.05rem; display:flex; align-items:center; gap:8px}
+  section .hint{color:var(--muted); font-size:.82rem; margin:0 0 14px}
+
+  table{width:100%; border-collapse:collapse; font-size:.88rem}
+  th,td{text-align:left; padding:8px 10px; border-bottom:1px solid var(--line)}
+  th{color:var(--muted); font-weight:600; font-size:.76rem; text-transform:uppercase; letter-spacing:.4px}
+  td.num,th.num{text-align:right}
+  tfoot td, tr.total td{font-weight:700; border-top:2px solid var(--line); background:var(--panel2)}
+  input,select{
+    width:100%; background:var(--panel2); border:1px solid var(--line); color:var(--txt);
+    border-radius:6px; padding:7px 8px; font-size:.86rem; font-family:inherit;
+  }
+  input:focus,select:focus{outline:1px solid var(--accent)}
+  input[type=number]{text-align:right}
+  .row-actions{width:46px; text-align:center}
+  td .del{background:transparent; border:none; color:var(--muted); cursor:pointer; font-size:1rem; padding:2px 6px}
+  td .del:hover{color:var(--red)}
+
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr}}
+
+  .field{display:flex; flex-direction:column; gap:5px; margin-bottom:12px}
+  .field label{font-size:.8rem; color:var(--muted)}
+  .field .out{font-weight:700; font-size:1.05rem}
+
+  .bar-row{display:flex; align-items:center; gap:10px; margin:8px 0; font-size:.85rem}
+  .bar-row .name{width:130px; color:var(--muted); flex-shrink:0}
+  .bar-track{flex:1; background:var(--panel2); border-radius:6px; height:18px; overflow:hidden}
+  .bar-fill{height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .bar-row .amt{width:120px; text-align:right; font-variant-numeric:tabular-nums}
+
+  .pill{display:inline-block; background:var(--chip); border:1px solid var(--line); border-radius:20px; padding:2px 10px; font-size:.72rem; color:var(--muted)}
+  .note{font-size:.78rem; color:var(--muted); margin-top:10px}
+  footer{text-align:center; color:var(--muted); font-size:.78rem; margin-top:30px}
+  a{color:var(--accent2)}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏍️ Royal Enfield Interceptor 650 — Cost Tracker</h1>
+  <p>Interactive total cost of ownership: purchase, fuel, servicing &amp; running costs. Everything you type saves automatically in this browser.</p>
+</header>
+
+<div class="wrap">
+
+  <div class="toolbar">
+    <span class="pill">Currency: <select id="currency" style="width:auto;display:inline-block;padding:2px 6px">
+      <option value="₹">₹ INR</option><option value="$">$ USD</option><option value="£">£ GBP</option><option value="€">€ EUR</option>
+    </select></span>
+    <span class="spacer"></span>
+    <button class="ghost sm" id="exportCsv">⬇ Export CSV</button>
+    <button class="ghost sm" id="printBtn">🖨 Print / PDF</button>
+    <button class="danger sm" id="resetBtn">Reset all</button>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="cards" id="summaryCards"></div>
+
+  <!-- 1. PURCHASE / ON-ROAD COST -->
+  <section>
+    <h2>1️⃣ On-Road Purchase Cost <span class="pill">one-time</span></h2>
+    <p class="hint">Break down the on-road price. Edit any value — totals update live. Add rows for accessories, extended warranty, etc.</p>
+    <table id="purchaseTable">
+      <thead>
+        <tr><th>Item</th><th class="num" style="width:180px">Amount</th><th class="row-actions"></th></tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr class="total"><td>On-road total</td><td class="num" id="purchaseTotal">—</td><td></td></tr>
+      </tfoot>
+    </table>
+    <button class="ghost sm" style="margin-top:12px" data-add="purchase">+ Add item</button>
+  </section>
+
+  <!-- 2. RECURRING / ANNUAL COSTS -->
+  <section>
+    <h2>2️⃣ Recurring Costs <span class="pill">per year</span></h2>
+    <p class="hint">Insurance, road tax, parking, accessories you replace yearly. Enter the yearly amount.</p>
+    <table id="recurringTable">
+      <thead>
+        <tr><th>Item</th><th class="num" style="width:180px">Amount / year</th><th class="row-actions"></th></tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr class="total"><td>Total per year</td><td class="num" id="recurringTotal">—</td><td></td></tr>
+      </tfoot>
+    </table>
+    <button class="ghost sm" style="margin-top:12px" data-add="recurring">+ Add item</button>
+  </section>
+
+  <!-- 3. RUNNING COST CALCULATOR -->
+  <section>
+    <h2>3️⃣ Fuel &amp; Running Cost Calculator</h2>
+    <p class="hint">The Interceptor 650 returns roughly 25–30 km/l (≈ 55–65 mpg). Tweak the inputs for your real-world numbers.</p>
+    <div class="grid2">
+      <div>
+        <div class="field"><label>Distance ridden per month (km)</label><input type="number" id="kmPerMonth" value="800"></div>
+        <div class="field"><label>Mileage / fuel economy (km per litre)</label><input type="number" id="mileage" value="27"></div>
+        <div class="field"><label>Fuel price (per litre)</label><input type="number" id="fuelPrice" value="105"></div>
+      </div>
+      <div>
+        <div class="field"><label>Fuel cost per km</label><span class="out" id="costPerKm">—</span></div>
+        <div class="field"><label>Fuel cost per month</label><span class="out" id="fuelPerMonth">—</span></div>
+        <div class="field"><label>Fuel cost per year</label><span class="out accent" id="fuelPerYear" style="color:var(--accent2)">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. SERVICE / MAINTENANCE LOG -->
+  <section>
+    <h2>4️⃣ Service &amp; Maintenance Log</h2>
+    <p class="hint">Log each service or repair. The yearly total feeds into your cost of ownership below.</p>
+    <table id="serviceTable">
+      <thead>
+        <tr><th style="width:120px">Date</th><th>Work done</th><th class="num">Odometer (km)</th><th class="num" style="width:140px">Cost</th><th class="row-actions"></th></tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr class="total"><td colspan="3">Total maintenance spend</td><td class="num" id="serviceTotal">—</td><td></td></tr>
+      </tfoot>
+    </table>
+    <button class="ghost sm" style="margin-top:12px" data-add="service">+ Add service entry</button>
+    <p class="note">Tip: Interceptor 650 service intervals are typically every 5,000 km / 6 months.</p>
+  </section>
+
+  <!-- 5. OWNERSHIP SUMMARY -->
+  <section>
+    <h2>5️⃣ Cost of Ownership Summary</h2>
+    <p class="hint">Spread the one-time purchase over how long you plan to keep the bike.</p>
+    <div class="field" style="max-width:320px">
+      <label>Planned ownership period (years)</label>
+      <input type="number" id="ownYears" value="5" min="1">
+    </div>
+    <div id="ownerBars" style="margin-top:18px"></div>
+  </section>
+
+  <footer>
+    Built for the Royal Enfield Interceptor 650 · Data stays in your browser (localStorage) · Estimates only.
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  const LS_KEY = "int650_cost_tracker_v1";
+
+  // ---------- Default data ----------
+  const defaults = {
+    currency: "₹",
+    purchase: [
+      {item:"Ex-showroom price", amount:312000},
+      {item:"Road tax / registration (RTO)", amount:34000},
+      {item:"Insurance (1st year)", amount:18000},
+      {item:"Accessories & handling", amount:9000},
+    ],
+    recurring: [
+      {item:"Insurance renewal", amount:9000},
+      {item:"Periodic service (labour + parts)", amount:6000},
+      {item:"Tyres / consumables (amortised)", amount:4000},
+    ],
+    service: [
+      {date:"2026-01-15", work:"1st free service", odo:500, cost:0},
+      {date:"2026-04-10", work:"Oil + filter change", odo:5200, cost:2800},
+    ],
+    kmPerMonth:800, mileage:27, fuelPrice:105, ownYears:5
+  };
+
+  let data = load();
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(LS_KEY);
+      if(raw) return Object.assign(JSON.parse(JSON.stringify(defaults)), JSON.parse(raw));
+    }catch(e){}
+    return JSON.parse(JSON.stringify(defaults));
+  }
+  function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){} }
+
+  // ---------- Helpers ----------
+  const $ = s => document.querySelector(s);
+  const cur = () => data.currency || "₹";
+  function fmt(n){
+    if(isNaN(n)) n = 0;
+    return cur() + Math.round(n).toLocaleString("en-IN");
+  }
+  function num(v){ const n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+  // ---------- Render editable tables ----------
+  function renderSimpleTable(key, tbodyId){
+    const tbody = document.querySelector(tbodyId);
+    tbody.innerHTML = "";
+    data[key].forEach((row, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        `<td><input data-k="${key}" data-i="${i}" data-f="item" value="${escape(row.item)}"></td>`+
+        `<td class="num"><input type="number" data-k="${key}" data-i="${i}" data-f="amount" value="${row.amount}"></td>`+
+        `<td class="row-actions"><button class="del" data-del="${key}" data-i="${i}" title="Delete">✕</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderServiceTable(){
+    const tbody = $("#serviceTable tbody");
+    tbody.innerHTML = "";
+    data.service.forEach((row,i)=>{
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        `<td><input type="date" data-k="service" data-i="${i}" data-f="date" value="${row.date||""}"></td>`+
+        `<td><input data-k="service" data-i="${i}" data-f="work" value="${escape(row.work)}"></td>`+
+        `<td class="num"><input type="number" data-k="service" data-i="${i}" data-f="odo" value="${row.odo}"></td>`+
+        `<td class="num"><input type="number" data-k="service" data-i="${i}" data-f="cost" value="${row.cost}"></td>`+
+        `<td class="row-actions"><button class="del" data-del="service" data-i="${i}" title="Delete">✕</button></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function escape(s){ return String(s==null?"":s).replace(/"/g,"&quot;"); }
+
+  // ---------- Calculations & summary ----------
+  function sum(arr, f){ return arr.reduce((a,r)=>a+num(r[f]),0); }
+
+  function recalc(){
+    const purchaseTotal = sum(data.purchase,"amount");
+    const recurringTotal = sum(data.recurring,"amount");
+    const serviceTotal = sum(data.service,"cost");
+
+    $("#purchaseTotal").textContent = fmt(purchaseTotal);
+    $("#recurringTotal").textContent = fmt(recurringTotal);
+    $("#serviceTotal").textContent = fmt(serviceTotal);
+
+    // Fuel calc
+    const kmPM = num(data.kmPerMonth), mil = num(data.mileage), fp = num(data.fuelPrice);
+    const costPerKm = mil>0 ? fp/mil : 0;
+    const fuelPM = costPerKm * kmPM;
+    const fuelPY = fuelPM * 12;
+    $("#costPerKm").textContent = cur() + costPerKm.toFixed(2);
+    $("#fuelPerMonth").textContent = fmt(fuelPM);
+    $("#fuelPerYear").textContent = fmt(fuelPY);
+
+    // Ownership summary
+    const years = Math.max(1, num(data.ownYears));
+    const purchasePerYear = purchaseTotal / years;
+    // logged maintenance is cumulative-to-date; annualise over ownership for fairness
+    const servicePerYear = serviceTotal / years;
+    const annual = purchasePerYear + recurringTotal + fuelPY + servicePerYear;
+    const grandTotal = annual * years;
+
+    // Summary cards
+    const cards = [
+      {label:"On-road purchase", value:fmt(purchaseTotal), sub:"one-time", cls:""},
+      {label:"Running cost / year", value:fmt(fuelPY), sub:fmt(costPerKm)+" per km", cls:"accent"},
+      {label:"Cost per year", value:fmt(annual), sub:"all-in (amortised)", cls:"accent"},
+      {label:"Total over "+years+" yr", value:fmt(grandTotal), sub:"complete ownership", cls:"green"},
+    ];
+    $("#summaryCards").innerHTML = cards.map(c=>
+      `<div class="card ${c.cls}"><div class="label">${c.label}</div><div class="value">${c.value}</div><div class="sub">${c.sub}</div></div>`
+    ).join("");
+
+    // Ownership breakdown bars (annual)
+    const parts = [
+      {name:"Purchase (amortised)", amt:purchasePerYear},
+      {name:"Fuel / running", amt:fuelPY},
+      {name:"Recurring (insurance…)", amt:recurringTotal},
+      {name:"Maintenance", amt:servicePerYear},
+    ];
+    const max = Math.max(1, ...parts.map(p=>p.amt));
+    $("#ownerBars").innerHTML = parts.map(p=>
+      `<div class="bar-row"><span class="name">${p.name}</span>`+
+      `<span class="bar-track"><span class="bar-fill" style="width:${(p.amt/max*100).toFixed(1)}%"></span></span>`+
+      `<span class="amt">${fmt(p.amt)}/yr</span></div>`
+    ).join("") +
+      `<div class="bar-row" style="margin-top:14px;font-weight:700">`+
+      `<span class="name">Per year total</span>`+
+      `<span class="bar-track" style="background:transparent"></span>`+
+      `<span class="amt">${fmt(annual)}/yr</span></div>`;
+  }
+
+  // ---------- Events ----------
+  document.addEventListener("input", e=>{
+    const t = e.target;
+    if(t.dataset.k){
+      const {k,i,f} = t.dataset;
+      data[k][i][f] = (f==="item"||f==="work"||f==="date") ? t.value : num(t.value);
+      // amount-like fields keep raw number
+      if(f==="odo"||f==="cost"||f==="amount") data[k][i][f] = num(t.value);
+      save(); recalc();
+    }
+    if(["kmPerMonth","mileage","fuelPrice","ownYears"].includes(t.id)){
+      data[t.id] = num(t.value); save(); recalc();
+    }
+  });
+
+  document.addEventListener("click", e=>{
+    const t = e.target;
+    if(t.dataset.add){
+      const k = t.dataset.add;
+      if(k==="purchase"||k==="recurring") data[k].push({item:"New item", amount:0});
+      renderAll(); save(); recalc();
+    }
+    if(t.dataset.del!=null && t.classList.contains("del")){
+      const k = t.dataset.del, i = +t.dataset.i;
+      data[k].splice(i,1); renderAll(); save(); recalc();
+    }
+  });
+
+  // add service handled by generic add
+  document.querySelector('[data-add="service"]').addEventListener("click", ()=>{
+    data.service.push({date:new Date().toISOString().slice(0,10), work:"Service", odo:0, cost:0});
+    renderAll(); save(); recalc();
+  });
+
+  $("#currency").addEventListener("change", e=>{ data.currency = e.target.value; save(); recalc(); });
+
+  $("#resetBtn").addEventListener("click", ()=>{
+    if(confirm("Reset all data to defaults? This cannot be undone.")){
+      localStorage.removeItem(LS_KEY); data = JSON.parse(JSON.stringify(defaults));
+      initInputs(); renderAll(); recalc();
+    }
+  });
+
+  $("#printBtn").addEventListener("click", ()=>window.print());
+
+  $("#exportCsv").addEventListener("click", ()=>{
+    let csv = "Section,Item,Detail,Amount\n";
+    const q = s => '"'+String(s).replace(/"/g,'""')+'"';
+    data.purchase.forEach(r=>csv+=`Purchase,${q(r.item)},,${num(r.amount)}\n`);
+    data.recurring.forEach(r=>csv+=`Recurring/yr,${q(r.item)},,${num(r.amount)}\n`);
+    data.service.forEach(r=>csv+=`Service,${q(r.work)},${q(r.date+" / "+r.odo+"km")},${num(r.cost)}\n`);
+    const blob = new Blob([csv],{type:"text/csv"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "interceptor650-costs.csv"; a.click();
+  });
+
+  // ---------- Init ----------
+  function initInputs(){
+    $("#currency").value = data.currency;
+    $("#kmPerMonth").value = data.kmPerMonth;
+    $("#mileage").value = data.mileage;
+    $("#fuelPrice").value = data.fuelPrice;
+    $("#ownYears").value = data.ownYears;
+  }
+  function renderAll(){
+    renderSimpleTable("purchase","#purchaseTable tbody");
+    renderSimpleTable("recurring","#recurringTable tbody");
+    renderServiceTable();
+  }
+
+  initInputs();
+  renderAll();
+  recalc();
+})();
+</script>
+</body>
+</html>
