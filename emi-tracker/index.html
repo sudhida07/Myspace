@@ -193,11 +193,29 @@
   var totalCards=(D.cards||[]).reduce(function(s,c){return s+(c.due||0);},0);
   var cardEmis=D.cardEmis||[];
   var totalCardEmi=cardEmis.reduce(function(s,e){return s+(e.monthlyEmi||0);},0);
+  // Whole months strictly after `from`'s month, up to and including end's month.
+  function monthsUntil(endDate,from){
+    if(!endDate) return null;
+    var e=new Date(endDate), f=from?new Date(from):new Date();
+    if(isNaN(e)||isNaN(f)) return null;
+    return Math.max(0,(e.getFullYear()-f.getFullYear())*12+(e.getMonth()-f.getMonth()));
+  }
+  // remaining installments: explicit, else derived from the end date
+  function emiRemaining(e){
+    if(e.remainingMonths!=null) return e.remainingMonths;
+    return monthsUntil(e.endDate,D.asOf);
+  }
   // outstanding on a card EMI: explicit, else derived from remaining installments
   function emiOutstanding(e){
     if(e.outstanding!=null) return e.outstanding;
-    if(e.remainingMonths) return (e.monthlyEmi||0)*e.remainingMonths;
+    var r=emiRemaining(e);
+    if(r) return (e.monthlyEmi||0)*r;
     return null;
+  }
+  function monthName(d){
+    if(!d) return null;
+    var x=new Date(d); if(isNaN(x)) return null;
+    return x.toLocaleDateString("en-IN",{month:"short",year:"numeric"});
   }
   var totalEmiOutstanding=cardEmis.reduce(function(s,e){var o=emiOutstanding(e);return s+(o||0);},0);
   var emiOutstandingKnown=cardEmis.every(function(e){return emiOutstanding(e)!=null;});
@@ -281,10 +299,11 @@
     var box=$("cardEmiBox"), tb=$("emiTbl").querySelector("tbody");
     if(!cardEmis.length){ box.style.display="none"; return; }
     cardEmis.forEach(function(e){
-      var o=emiOutstanding(e);
+      var o=emiOutstanding(e), r=emiRemaining(e), ends=monthName(e.endDate);
       var tr=document.createElement("tr");
       tr.innerHTML="<td>"+e.name+"<br><span style='color:var(--dim);font-size:11px'>"+(e.issuer||"")+"</span></td>"+
-        "<td>"+(e.remainingMonths?e.remainingMonths+" mo":"<span style='color:var(--warn)'>unknown</span>")+"</td>"+
+        "<td>"+(r!=null?r+" mo"+(ends?"<br><span style='color:var(--dim);font-size:11px'>ends "+ends+"</span>":"")
+                       :"<span style='color:var(--warn)'>unknown</span>")+"</td>"+
         "<td><strong>"+fmt(e.monthlyEmi)+"</strong>"+
         (o!=null?"<br><span style='color:var(--dim);font-size:11px'>"+fmt(o)+" left</span>":"")+"</td>";
       tb.appendChild(tr);
