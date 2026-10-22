@@ -11,7 +11,8 @@
     /* validated categorical slots (dark steps, checked vs #141b30) */
     --series-1:#3987e5;  /* blue   - principal */
     --series-2:#d95926;  /* orange - interest  */
-    --series-3:#199e70;  /* aqua   - cards     */
+    --series-3:#199e70;  /* aqua   - cards billed   */
+    --series-5:#9085e9;  /* violet - cards unbilled */
     --warn:#c98500; --danger:#e66767; --good:#199e70;
     --radius:14px;
   }
@@ -128,7 +129,7 @@
       <div class="card">
         <h2>Credit Card Dues</h2>
         <table id="cardTbl">
-          <thead><tr><th>Card</th><th>Due date</th><th>Amount</th></tr></thead>
+          <thead><tr><th>Card</th><th>Due date</th><th>Billed</th><th>Unbilled</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -191,6 +192,7 @@
   // ---- header / alerts ----
   var totalLoans=D.loans.reduce(function(s,l){return s+(l.balance||0);},0);
   var totalCards=(D.cards||[]).reduce(function(s,c){return s+(c.due||0);},0);
+  var totalUnbilled=(D.cards||[]).reduce(function(s,c){return s+(c.unbilled||0);},0);
   var cardEmis=D.cardEmis||[];
   var totalCardEmi=cardEmis.reduce(function(s,e){return s+(e.monthlyEmi||0);},0);
   // Whole months strictly after `from`'s month, up to and including end's month.
@@ -223,7 +225,9 @@
   // so exclude it from the EMI balance to avoid double-counting it.
   var emiAlreadyBilled=(D.cards||[]).reduce(function(s,c){return s+(c.emiPortion||0);},0);
   var totalEmiFuture=Math.max(0,totalEmiOutstanding-emiAlreadyBilled);
-  var totalLiab=totalLoans+totalCards+totalEmiFuture;
+  // Unbilled spend is owed but not yet payable — part of liabilities, not of
+  // the cash needed this cycle.
+  var totalLiab=totalLoans+totalCards+totalUnbilled+totalEmiFuture;
 
   $("subline").innerHTML = D.source==="demo"
     ? "Demo data — copy <b>data.example.js</b> to <b>data.js</b> to load your own."
@@ -245,9 +249,10 @@
   // ---- composition bars ----
   function renderBars(){
     var items=[{label:"Loans",val:totalLoans,color:"var(--series-1)"},
-               {label:"Credit cards",val:totalCards,color:"var(--series-3)"},
+               {label:"Card dues (billed)",val:totalCards,color:"var(--series-3)"},
+               {label:"Card spend (unbilled)",val:totalUnbilled,color:"var(--series-5)"},
                {label:"Card EMIs (not yet billed)",val:totalEmiFuture,color:"var(--series-2)"}];
-    var max=Math.max(totalLoans,totalCards,totalEmiFuture,1), box=$("bars");
+    var max=Math.max(totalLoans,totalCards,totalUnbilled,totalEmiFuture,1), box=$("bars");
     box.innerHTML="";
     items.forEach(function(it){
       var d=document.createElement("div"); d.className="brow";
@@ -329,18 +334,31 @@
   // ---- cards table ----
   (function(){
     var tb=$("cardTbl").querySelector("tbody");
-    if(!(D.cards||[]).length){ tb.innerHTML="<tr><td colspan='3' class='empty'>No cards.</td></tr>"; return; }
-    D.cards.slice().sort(function(a,b){return b.due-a.due;}).forEach(function(c){
-      var pill = c.due===0 ? "<span class='pill clear'>cleared</span>"
-        : (c._days!=null&&c._days<=30 ? "<span class='pill soon'>"+c._days+"d</span>" : "");
+    if(!(D.cards||[]).length){ tb.innerHTML="<tr><td colspan='4' class='empty'>No cards.</td></tr>"; return; }
+    D.cards.slice().sort(function(a,b){
+      return ((b.due||0)+(b.unbilled||0))-((a.due||0)+(a.unbilled||0));
+    }).forEach(function(c){
+      var pill = (c.due===0 && !c.unbilled) ? "<span class='pill clear'>cleared</span>"
+        : (c._days!=null&&c._days<=30 ? "<span class='pill soon'>"+c._days+"d</span>"
+        : (!c.due&&c.unbilled ? "<span class='pill'>unbilled</span>" : ""));
       var tr=document.createElement("tr");
-      tr.innerHTML="<td>"+c.name+pill+"</td><td>"+(c.dueDate||"—")+"</td><td>"+fmt(c.due)+
-        (c.emiPortion?"<br><span style='color:var(--dim);font-size:11px'>incl. "+fmt(c.emiPortion)+" EMI</span>":"")+"</td>";
+      tr.innerHTML="<td>"+c.name+pill+"</td><td>"+(c.dueDate||"—")+"</td>"+
+        "<td>"+fmt(c.due)+
+        (c.emiPortion?"<br><span style='color:var(--dim);font-size:11px'>incl. "+fmt(c.emiPortion)+" EMI</span>":"")+"</td>"+
+        "<td>"+(c.unbilled?fmt(c.unbilled):"<span style='color:var(--dim)'>—</span>")+"</td>";
       tb.appendChild(tr);
     });
     var tr=document.createElement("tr");
-    tr.innerHTML="<td><strong>Total</strong></td><td></td><td><strong>"+fmt(totalCards)+"</strong></td>";
+    tr.innerHTML="<td><strong>Total</strong></td><td></td><td><strong>"+fmt(totalCards)+
+      "</strong></td><td><strong>"+fmt(totalUnbilled)+"</strong></td>";
     tb.appendChild(tr);
+    if(totalUnbilled>0){
+      var tr2=document.createElement("tr");
+      tr2.innerHTML="<td colspan='4' style='text-align:left;color:var(--dim);font-size:11.5px;border-bottom:none'>"+
+        "Unbilled spend is owed but has no due date yet — it lands in the next statement, "+
+        "so it counts toward total liabilities but not toward cash needed this cycle.</td>";
+      tb.appendChild(tr2);
+    }
   })();
 
   // ---- loan selector + render ----
@@ -382,7 +400,8 @@
     $("kLoan").textContent=fmt(totalLoans);
     $("kLoanNote").textContent=D.loans.length+" loan"+(D.loans.length===1?"":"s");
     $("kCards").textContent=fmt(totalCards);
-    $("kCardsNote").textContent=(D.cards||[]).filter(function(c){return c.due>0;}).length+" card(s) with dues";
+    $("kCardsNote").innerHTML=(D.cards||[]).filter(function(c){return c.due>0;}).length+" card(s) billed"+
+      (totalUnbilled>0?" · <span style='color:var(--series-5)'>+"+fmt(totalUnbilled)+" unbilled</span>":"");
     $("kEmi").textContent = s? fmt(s.emi) : "—";
     $("kEmiNote").textContent = s? ("over "+n+" months") : "needs rate + tenure";
 
