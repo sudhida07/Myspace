@@ -219,7 +219,11 @@
   }
   var totalEmiOutstanding=cardEmis.reduce(function(s,e){var o=emiOutstanding(e);return s+(o||0);},0);
   var emiOutstandingKnown=cardEmis.every(function(e){return emiOutstanding(e)!=null;});
-  var totalLiab=totalLoans+totalCards+totalEmiOutstanding;
+  // An installment sitting inside a current statement is already in totalCards,
+  // so exclude it from the EMI balance to avoid double-counting it.
+  var emiAlreadyBilled=(D.cards||[]).reduce(function(s,c){return s+(c.emiPortion||0);},0);
+  var totalEmiFuture=Math.max(0,totalEmiOutstanding-emiAlreadyBilled);
+  var totalLiab=totalLoans+totalCards+totalEmiFuture;
 
   $("subline").innerHTML = D.source==="demo"
     ? "Demo data — copy <b>data.example.js</b> to <b>data.js</b> to load your own."
@@ -242,8 +246,8 @@
   function renderBars(){
     var items=[{label:"Loans",val:totalLoans,color:"var(--series-1)"},
                {label:"Credit cards",val:totalCards,color:"var(--series-3)"},
-               {label:"Card EMIs",val:totalEmiOutstanding,color:"var(--series-2)"}];
-    var max=Math.max(totalLoans,totalCards,totalEmiOutstanding,1), box=$("bars");
+               {label:"Card EMIs (not yet billed)",val:totalEmiFuture,color:"var(--series-2)"}];
+    var max=Math.max(totalLoans,totalCards,totalEmiFuture,1), box=$("bars");
     box.innerHTML="";
     items.forEach(function(it){
       var d=document.createElement("div"); d.className="brow";
@@ -313,9 +317,13 @@
       tr.innerHTML="<td><strong>Total</strong></td><td></td><td><strong>"+fmt(totalCardEmi)+"</strong></td>";
       tb.appendChild(tr);
     }
-    $("emiNote").innerHTML = emiOutstandingKnown ? "" :
-      "<span style='color:var(--warn)'>Remaining installments unknown, so this EMI's outstanding principal "+
-      "isn't counted in Total Liabilities. Add <code>remainingMonths</code> in data.js to include it.</span>";
+    var notes=[];
+    if(!emiOutstandingKnown) notes.push("<span style='color:var(--warn)'>Remaining installments unknown, so this "+
+      "EMI's outstanding principal isn't counted in Total Liabilities. Add <code>remainingMonths</code> in data.js.</span>");
+    if(emiAlreadyBilled>0) notes.push("Of the "+fmt(totalEmiOutstanding)+" total, "+fmt(emiAlreadyBilled)+
+      " is already inside a current card statement, so Total Liabilities counts "+fmt(totalEmiFuture)+
+      " here to avoid double-counting it.");
+    $("emiNote").innerHTML=notes.join("<br>");
   })();
 
   // ---- cards table ----
@@ -326,7 +334,8 @@
       var pill = c.due===0 ? "<span class='pill clear'>cleared</span>"
         : (c._days!=null&&c._days<=30 ? "<span class='pill soon'>"+c._days+"d</span>" : "");
       var tr=document.createElement("tr");
-      tr.innerHTML="<td>"+c.name+pill+"</td><td>"+(c.dueDate||"—")+"</td><td>"+fmt(c.due)+"</td>";
+      tr.innerHTML="<td>"+c.name+pill+"</td><td>"+(c.dueDate||"—")+"</td><td>"+fmt(c.due)+
+        (c.emiPortion?"<br><span style='color:var(--dim);font-size:11px'>incl. "+fmt(c.emiPortion)+" EMI</span>":"")+"</td>";
       tb.appendChild(tr);
     });
     var tr=document.createElement("tr");
