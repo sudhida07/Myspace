@@ -80,7 +80,8 @@
     <div class="card kpi"><div class="label">Total Liabilities</div><div class="val" id="kTotal">—</div><div class="note" id="kTotalNote"></div></div>
     <div class="card kpi"><div class="label">Loan Balance</div><div class="val" style="color:var(--series-1)" id="kLoan">—</div><div class="note" id="kLoanNote"></div></div>
     <div class="card kpi"><div class="label">Credit Card Dues</div><div class="val" style="color:var(--series-3)" id="kCards">—</div><div class="note" id="kCardsNote"></div></div>
-    <div class="card kpi"><div class="label">Monthly EMI</div><div class="val" id="kEmi">—</div><div class="note" id="kEmiNote"></div></div>
+    <div class="card kpi"><div class="label">Loan EMI</div><div class="val" id="kEmi">—</div><div class="note" id="kEmiNote"></div></div>
+    <div class="card kpi"><div class="label">Monthly Outgo</div><div class="val" style="color:var(--series-2)" id="kOutgo">—</div><div class="note" id="kOutgoNote"></div></div>
   </div>
 
   <div class="grid cols">
@@ -113,6 +114,15 @@
           <canvas id="donut" width="154" height="154"></canvas>
           <div class="legend" id="legend"></div>
         </div>
+      </div>
+
+      <div class="card" id="cardEmiBox">
+        <h2>Card EMIs (converted purchases)</h2>
+        <table id="emiTbl">
+          <thead><tr><th>Facility</th><th>Remaining</th><th>Monthly EMI</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="srcnote" id="emiNote"></div>
       </div>
 
       <div class="card">
@@ -181,7 +191,17 @@
   // ---- header / alerts ----
   var totalLoans=D.loans.reduce(function(s,l){return s+(l.balance||0);},0);
   var totalCards=(D.cards||[]).reduce(function(s,c){return s+(c.due||0);},0);
-  var totalLiab=totalLoans+totalCards;
+  var cardEmis=D.cardEmis||[];
+  var totalCardEmi=cardEmis.reduce(function(s,e){return s+(e.monthlyEmi||0);},0);
+  // outstanding on a card EMI: explicit, else derived from remaining installments
+  function emiOutstanding(e){
+    if(e.outstanding!=null) return e.outstanding;
+    if(e.remainingMonths) return (e.monthlyEmi||0)*e.remainingMonths;
+    return null;
+  }
+  var totalEmiOutstanding=cardEmis.reduce(function(s,e){var o=emiOutstanding(e);return s+(o||0);},0);
+  var emiOutstandingKnown=cardEmis.every(function(e){return emiOutstanding(e)!=null;});
+  var totalLiab=totalLoans+totalCards+totalEmiOutstanding;
 
   $("subline").innerHTML = D.source==="demo"
     ? "Demo data — copy <b>data.example.js</b> to <b>data.js</b> to load your own."
@@ -203,8 +223,9 @@
   // ---- composition bars ----
   function renderBars(){
     var items=[{label:"Loans",val:totalLoans,color:"var(--series-1)"},
-               {label:"Credit cards",val:totalCards,color:"var(--series-3)"}];
-    var max=Math.max(totalLoans,totalCards,1), box=$("bars");
+               {label:"Credit cards",val:totalCards,color:"var(--series-3)"},
+               {label:"Card EMIs",val:totalEmiOutstanding,color:"var(--series-2)"}];
+    var max=Math.max(totalLoans,totalCards,totalEmiOutstanding,1), box=$("bars");
     box.innerHTML="";
     items.forEach(function(it){
       var d=document.createElement("div"); d.className="brow";
@@ -254,6 +275,29 @@
     else hideTip();
   });
   $("donut").addEventListener("mouseleave",hideTip);
+
+  // ---- card EMI table ----
+  (function(){
+    var box=$("cardEmiBox"), tb=$("emiTbl").querySelector("tbody");
+    if(!cardEmis.length){ box.style.display="none"; return; }
+    cardEmis.forEach(function(e){
+      var o=emiOutstanding(e);
+      var tr=document.createElement("tr");
+      tr.innerHTML="<td>"+e.name+"<br><span style='color:var(--dim);font-size:11px'>"+(e.issuer||"")+"</span></td>"+
+        "<td>"+(e.remainingMonths?e.remainingMonths+" mo":"<span style='color:var(--warn)'>unknown</span>")+"</td>"+
+        "<td><strong>"+fmt(e.monthlyEmi)+"</strong>"+
+        (o!=null?"<br><span style='color:var(--dim);font-size:11px'>"+fmt(o)+" left</span>":"")+"</td>";
+      tb.appendChild(tr);
+    });
+    if(cardEmis.length>1){
+      var tr=document.createElement("tr");
+      tr.innerHTML="<td><strong>Total</strong></td><td></td><td><strong>"+fmt(totalCardEmi)+"</strong></td>";
+      tb.appendChild(tr);
+    }
+    $("emiNote").innerHTML = emiOutstandingKnown ? "" :
+      "<span style='color:var(--warn)'>Remaining installments unknown, so this EMI's outstanding principal "+
+      "isn't counted in Total Liabilities. Add <code>remainingMonths</code> in data.js to include it.</span>";
+  })();
 
   // ---- cards table ----
   (function(){
@@ -313,6 +357,14 @@
     $("kCardsNote").textContent=(D.cards||[]).filter(function(c){return c.due>0;}).length+" card(s) with dues";
     $("kEmi").textContent = s? fmt(s.emi) : "—";
     $("kEmiNote").textContent = s? ("over "+n+" months") : "needs rate + tenure";
+
+    var loanEmiAll = D.loans.reduce(function(sum,l){
+      var e = (l===current() && s) ? s.emi : computeEMI(l.balance,l.rate,l.tenureMonths);
+      return sum + (e||0);
+    },0);
+    $("kOutgo").textContent = fmt(loanEmiAll + totalCardEmi);
+    $("kOutgoNote").textContent = (loanEmiAll>0?"loan EMI + ":"") + "card EMIs" +
+      (loanEmiAll===0 && totalCardEmi>0 ? " (loan EMI not yet known)" : "");
 
     // legend (always present for 2 series, with direct labels)
     $("legend").innerHTML = s
